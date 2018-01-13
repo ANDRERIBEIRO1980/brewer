@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<entity-mappings xmlns="http://xmlns.jcp.org/xml/ns/persistence/orm"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence/orm http://xmlns.jcp.org/xml/ns/persistence/orm_2_1.xsd"
+	version="2.1">
+	
+	<named-native-query name="Vendas.totalPorMes" result-set-mapping="totalPorMesMapping">
+		<query>
+			select to_char(data_criacao, 'yyyy/mm') mes
+					 , count(*) total
+		      from venda
+			 where status = 'EMITIDA'
+			   and data_criacao >= (sysdate -180)
+			 group by to_char(data_criacao, 'yyyy/mm')   
+			 order by to_char(data_criacao, 'yyyy/mm') desc
+	    </query>
+	</named-native-query>
+	
+	<named-native-query name="Vendas.porOrigem" result-set-mapping="porOrigemMapping">
+		<query>
+		      select to_char(v.data_criacao, 'rrrr/mm') mes,
+ 			         sum(case when c.origem = 'INTERNACIONAL' then iv.quantidade else 0 end) total_internacional, 
+			         sum(case when c.origem = 'NACIONAL' then iv.quantidade else 0 end) total_nacional
+    			from venda v,
+                     item_venda iv,
+                     cerveja c
+			   where v.codigo = iv.codigo_venda
+                 and iv.codigo_cerveja = c.codigo
+			     and v.data_criacao > ADD_MONTHS(SYSDATE, -6)
+			     and v.status = 'EMITIDA'
+			 group by to_char(v.data_criacao, 'rrrr/mm')
+			order by to_char(v.data_criacao, 'rrrr/mm') desc
+	    </query>
+	</named-native-query>
+	
+	<sql-result-set-mapping name="totalPorMesMapping">
+		<constructor-result target-class="com.nasoft.brewer.dto.VendaMes">
+			<column name="mes" class="java.lang.String"/>
+			<column name="total" class="java.lang.Integer"/>
+		</constructor-result>
+	</sql-result-set-mapping>
+	
+	<sql-result-set-mapping name="porOrigemMapping">
+		<constructor-result target-class="com.nasoft.brewer.dto.VendaOrigem">
+			<column name="mes" class="java.lang.String"/>
+			<column name="total_nacional" class="java.lang.Integer"/>
+			<column name="total_internacional" class="java.lang.Integer"/>
+		</constructor-result>
+	</sql-result-set-mapping>
+	
+</entity-mappings>
